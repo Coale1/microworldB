@@ -97,6 +97,10 @@ class AI:
         if 'r' in self.memory.items():
             exitPath = BFS.pathToExit(self.memory, self.curPos)
             if len(exitPath) + self.turnNum >= 1000:
+                
+                if percepts['X'][0] == 'r':
+                    return 'U', 'lol'
+                
                 nextDir = exitPath.pop()
                 self.curPos = (self.curPos[0] + self.dirCords[nextDir][0],
                                self.curPos[1] + self.dirCords[nextDir][1])      
