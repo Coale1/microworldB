@@ -35,7 +35,7 @@ class AI:
         self.memory = {}
         self.goals = ["0","1","2","3","4","5","6","7","8","9"]
         self.turnNum = 0
-
+        self.maxTurns = max_turns
     def update(self, percepts, msg):
         """
         PERCEPTS:
@@ -60,9 +60,12 @@ class AI:
 
         The same goes for goal hexes (0, 1, 2, 3, 4, 5, 6, 7, 8, 9).
         """
-        #improve so it detects 'r' anywhere in it's line of sight (It should now, see below)
-        if percepts['X'][0] in self.goals:
-            return 'U', 'lol'
+        if self.turnNum > 1:
+            self.visited = msg[0]
+            self.memory = msg[1]
+
+        self.turnNum += 1
+        
 
         self.visited.add(self.curPos)
 
@@ -80,6 +83,9 @@ class AI:
                     self.memory[idk] = tile
 
         print(self.memory)
+        #improve so it detects 'r' anywhere in it's line of sight (It should now, see below)
+        if percepts['X'][0] in self.goals:
+            return 'U', (self.visited, self.memory)
 
         # Detection for r and goals in any direction
         for direction in ['N', 'S', 'E', 'W']:    
@@ -91,21 +97,20 @@ class AI:
                     self.curPos[0] + self.dirCords[moveToGoal][0],
                     self.curPos[1] + self.dirCords[moveToGoal][1]
                     )
-                self.turnNum += 1
-                return moveToGoal, "lol"
+                return moveToGoal, (self.visited, self.memory)
             
-        if 'r' in self.memory.items():
+        if 'r' in self.memory.values():
+            
             exitPath = BFS.pathToExit(self.memory, self.curPos)
-            if len(exitPath) + self.turnNum >= 1000:
-                
+            if len(exitPath) + self.turnNum >= self.maxTurns:
+                print(exitPath)
                 if percepts['X'][0] == 'r':
                     return 'U', 'lol'
                 
                 nextDir = exitPath.pop()
                 self.curPos = (self.curPos[0] + self.dirCords[nextDir][0],
                                self.curPos[1] + self.dirCords[nextDir][1])      
-                self.turnNum += 1
-                return nextDir, "lol" 
+                return nextDir, (self.visited, self.memory)
 
 
         # Explore unexplored g cells
@@ -117,19 +122,16 @@ class AI:
                 if newPos not in self.visited:
                     self.pathStack.append(direction)  # Add to stack for backtracking
                     self.curPos = newPos
-                    self.turnNum += 1
-                    return direction, "lol"
+                    return direction, (self.visited, self.memory)
 
         # backtracking when no new cells to explore
         if self.pathStack:
-            lastDir = self.pathStack.pop()
+            lastDir = self.pathStack.pop(0)
             reverseDir = {'N': 'S', 'S': 'N', 'E': 'W', 'W': 'E'}
             reverseMove = reverseDir[lastDir]
             self.curPos = (self.curPos[0] + self.dirCords[reverseMove][0],
                            self.curPos[1] + self.dirCords[reverseMove][1])
-            self.turnNum += 1
-            return reverseMove, "lol"
+            return reverseMove, (self.visited, self.memory)
 
         # Default move if nothing else (shouldn't be reached often)
-        self.turnNum += 1
-        return 'N'
+        return 'N', (self.visited, self.memory)
